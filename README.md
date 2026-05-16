@@ -59,7 +59,7 @@ Platform berbasis web untuk mengelola pengembangan perangkat lunak dengan pendek
 | Node.js | 20 LTS | Gunakan [nvm](https://github.com/nvm-sh/nvm) atau [fnm](https://github.com/Schniz/fnm) |
 | pnpm | 9.x atau 11.x | `npm install -g pnpm` |
 | MySQL / MariaDB | MySQL 8+ / MariaDB 10.6+ | Buat database kosong terlebih dahulu |
-| Redis | 6+ | Windows: gunakan [Memurai](https://www.memurai.com/) atau Redis via Docker/WSL2 |
+| Redis | 6+ | **WAJIB** — untuk BullMQ queue, JWT denylist, session cache. Windows: [Memurai](https://www.memurai.com/), Docker, atau WSL2 |
 | Git | 2.x | Diperlukan untuk worktree management |
 
 ---
@@ -141,7 +141,7 @@ pnpm dev:web
 | `DB_LOGGING` | `false` | | Log query SQL ke console |
 | `JWT_SECRET` | _(wajib diubah)_ | ✓ | Secret JWT — min 32 karakter random |
 | `JWT_EXPIRES_IN` | `24h` | | Masa berlaku token |
-| `REDIS_HOST` | `localhost` | ✓ | Host Redis |
+| `REDIS_HOST` | `localhost` | ✓ | Host Redis **[WAJIB]** — untuk queue, token denylist, cache |
 | `REDIS_PORT` | `6379` | | Port Redis |
 | `REDIS_PASSWORD` | _(kosong)_ | | Password Redis (jika ada) |
 | `WORKER_SECRET` | _(wajib diubah)_ | ✓ | Secret autentikasi Worker ke Internal API |
@@ -155,6 +155,21 @@ pnpm dev:web
 >
 > ```bash
 > node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+> ```
+
+> **Redis Requirement**: Redis adalah **dependency wajib** karena digunakan untuk:
+> - BullMQ job queue (worker queue)
+> - JWT token denylist (session invalidation)
+> - Session cache
+>
+> Jika Redis belum tersedia di development:
+> - **Windows**: Download [Memurai](https://www.memurai.com/) atau jalankan via Docker: `docker run -d -p 6379:6379 redis:7`
+> - **macOS**: `brew install redis` atau Docker
+> - **Linux**: `apt install redis-server` atau Docker
+>
+> Verifikasi koneksi:
+> ```bash
+> redis-cli ping    # Harus return PONG
 > ```
 
 ### `apps/worker/.env` (Opsional)
