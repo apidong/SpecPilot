@@ -92,8 +92,12 @@ cp apps/api/.env.example apps/api/.env
 
 Edit `apps/api/.env` — lihat bagian [Konfigurasi Environment](#konfigurasi-environment).
 
-> Worker membaca konfigurasi Redis dan `INTERNAL_API_URL` dari environment-nya sendiri.
-> Buat `apps/worker/.env` jika perlu override.
+> **Catatan Worker**: Secara default, worker membaca konfigurasi dari `apps/api/.env` (shared) atau environment system.
+> Untuk override, buat `apps/worker/.env` dari template:
+> ```bash
+> cp apps/worker/.env.example apps/worker/.env
+> ```
+> Lihat [Konfigurasi Worker](#konfigurasi-worker) untuk detail variable.
 
 ### 4. Jalankan migrasi database
 
@@ -152,6 +156,21 @@ pnpm dev:web
 > ```bash
 > node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 > ```
+
+### `apps/worker/.env` (Opsional)
+
+Worker secara default membaca konfigurasi dari `apps/api/.env`. Buat `apps/worker/.env` hanya jika perlu override nilai tertentu.
+
+| Variable | Default | Wajib | Keterangan |
+|----------|---------|:-----:|------------|
+| `WORKER_SECRET` | _(dari api/.env)_ | ✓ | Harus sama dengan `WORKER_SECRET` di API |
+| `REDIS_HOST` | `localhost` | | Host Redis |
+| `REDIS_PORT` | `6379` | | Port Redis |
+| `REDIS_PASSWORD` | _(kosong)_ | | Password Redis (jika ada) |
+| `INTERNAL_API_URL` | `http://localhost:3000` | | URL callback ke API (Internal API) |
+| `WORKSPACE_ROOT` | `./storage/app/workspaces` | | Root path git worktrees — harus sama dengan API |
+
+> **Penting**: `WORKER_SECRET` di worker **harus sama** dengan di API untuk autentikasi berhasil.
 
 ---
 
