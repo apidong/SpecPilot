@@ -1,4 +1,4 @@
-import { IsString, IsOptional, Length, IsInt, IsEnum } from 'class-validator';
+import { IsString, IsOptional, Length, IsInt, IsArray, ArrayMinSize, ArrayMaxSize } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import type { TicketStatus } from '@specpilot/shared';
 
@@ -42,4 +42,14 @@ export class UpdateTicketDto {
   @IsOptional()
   @IsInt()
   agent_id?: number;
+}
+
+export class AskAgentFixDto {
+  @ApiProperty({ type: [String], minItems: 1, maxItems: 50 })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(50)
+  @IsString({ each: true })
+  @Length(1, 4000, { each: true })
+  comments!: string[];
 }

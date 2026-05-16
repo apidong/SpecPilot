@@ -18,6 +18,7 @@ import type { ExecutionStatus } from '@specpilot/shared';
 
 @Entity('executions')
 @Index(['ticket_id'])
+@Index(['project_id', 'status'])
 export class Execution {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -66,6 +67,9 @@ export class Execution {
 
   @Column({ type: 'int', nullable: true })
   exit_code?: number;
+
+  @Column({ type: 'text', nullable: true })
+  ask_agent_fix_comments?: string;
 
   @CreateDateColumn()
   created_at!: Date;

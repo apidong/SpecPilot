@@ -54,7 +54,7 @@ export const useExecutionsStore = defineStore('executions', () => {
     }
     socket = io('/executions', {
       transports: ['websocket'],
-      auth: { token: useAuthStore().token.value },
+      auth: { token: useAuthStore().token },
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 10,

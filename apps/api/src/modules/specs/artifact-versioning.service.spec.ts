@@ -84,7 +84,14 @@ describe('ArtifactVersioningService', () => {
       return cb(mockManager);
     });
 
-    const result = await service.saveVersion(1, 'requirements', 'new content', 'user', 1, 'Updated');
+    const result = await service.saveVersion(
+      { id: 1 } as import('../../database/entities/spec.entity').Spec,
+      'requirements',
+      'new content',
+      'user',
+      'Updated',
+      1,
+    );
     expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
     expect(result).toHaveProperty('version', 2);
   });

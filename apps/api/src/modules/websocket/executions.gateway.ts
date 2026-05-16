@@ -8,8 +8,13 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, UnauthorizedException } from '@nestjs/common';
+import { Logger, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { InjectRedis } from '../../common/redis/redis.module.js';
+import { Redis } from 'ioredis';
+import { Execution } from '../../database/entities/execution.entity.js';
 import type { JwtPayload } from '../auth/jwt.strategy.js';
 
 @WebSocketGateway({
@@ -22,9 +27,14 @@ export class ExecutionsGateway implements OnGatewayConnection, OnGatewayDisconne
 
   private readonly logger = new Logger(ExecutionsGateway.name);
 
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    @InjectRedis() private readonly redis: Redis,
+    @InjectRepository(Execution)
+    private readonly executionRepo: Repository<Execution>,
+  ) {}
 
-  handleConnection(client: Socket): void {
+  async handleConnection(client: Socket): Promise<void> {
     try {
       const token =
         (client.handshake.auth as Record<string, string | undefined>)['token'] ??
@@ -33,6 +43,11 @@ export class ExecutionsGateway implements OnGatewayConnection, OnGatewayDisconne
       if (!token) throw new UnauthorizedException('No token');
 
       const payload = this.jwtService.verify<JwtPayload>(token);
+
+      // Check JWT denylist (logged-out tokens must not connect)
+      const isDenied = await this.redis.exists(`auth:denylist:${payload.jti}`);
+      if (isDenied) throw new UnauthorizedException('Token has been revoked');
+
       // Attach userId to socket data for later use in subscribe
       (client.data as Record<string, unknown>)['userId'] = payload.sub;
 
@@ -48,10 +63,32 @@ export class ExecutionsGateway implements OnGatewayConnection, OnGatewayDisconne
   }
 
   @SubscribeMessage('subscribe')
-  handleSubscribe(
+  async handleSubscribe(
     @MessageBody() data: { executionId: number },
     @ConnectedSocket() client: Socket,
-  ): void {
+  ): Promise<void> {
+    const userId = (client.data as Record<string, unknown>)['userId'] as number | undefined;
+    if (!userId) {
+      client.disconnect();
+      return;
+    }
+
+    // Verify the requesting user owns this execution
+    const execution = await this.executionRepo
+      .createQueryBuilder('e')
+      .innerJoin('projects', 'p', 'p.id = e.project_id')
+      .where('e.id = :executionId', { executionId: data.executionId })
+      .andWhere('p.user_id = :userId', { userId })
+      .getOne();
+
+    if (!execution) {
+      this.logger.warn(
+        `User ${userId} denied subscribe to execution ${data.executionId}`,
+      );
+      client.emit('error', { message: 'Execution not found or access denied' });
+      return;
+    }
+
     const room = `execution.${data.executionId}`;
     void client.join(room);
     this.logger.debug(`Client ${client.id} subscribed to ${room}`);

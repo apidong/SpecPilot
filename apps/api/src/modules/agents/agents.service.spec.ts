@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AgentsService } from './agents.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { Agent } from '../../database/entities/agent.entity';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 
@@ -24,6 +25,11 @@ const mockAgentRepo = {
   delete: jest.fn(),
 };
 
+const mockDataSource = {
+  transaction: jest.fn(),
+  query: jest.fn(),
+};
+
 describe('AgentsService', () => {
   let service: AgentsService;
 
@@ -32,6 +38,7 @@ describe('AgentsService', () => {
       providers: [
         AgentsService,
         { provide: getRepositoryToken(Agent), useValue: mockAgentRepo },
+        { provide: DataSource, useValue: mockDataSource },
       ],
     }).compile();
 
@@ -57,7 +64,16 @@ describe('AgentsService', () => {
   });
 
   it('should throw ConflictException when setting second default (P17)', async () => {
-    mockAgentRepo.findOne.mockResolvedValue({ id: 2, is_default: true });
+    // create(is_default:true) goes through dataSource.transaction with a manager
+    mockDataSource.transaction.mockImplementation(async (cb: Function) => {
+      const mockManager = {
+        query: jest.fn().mockResolvedValue([]),
+        findOne: jest.fn().mockResolvedValue({ id: 2, is_default: true }),
+        create: jest.fn(),
+        save: jest.fn(),
+      };
+      return cb(mockManager);
+    });
 
     await expect(
       service.create(10, {

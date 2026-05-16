@@ -3,14 +3,16 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Ticket } from '../../database/entities/ticket.entity.js';
 import { Execution } from '../../database/entities/execution.entity.js';
 import { Spec } from '../../database/entities/spec.entity.js';
-import { CreateTicketDto, UpdateTicketDto } from './dto/ticket.dto.js';
+import { CreateTicketDto, UpdateTicketDto, AskAgentFixDto } from './dto/ticket.dto.js';
 import { ConcurrentExecutionGuardService } from './concurrent-execution-guard.service.js';
+import { CommitService } from './commit.service.js';
 import { TICKET_TRANSITIONS } from '@specpilot/shared';
 import type { TicketStatus } from '@specpilot/shared';
 
@@ -26,6 +28,7 @@ export class TicketsService {
     @InjectDataSource()
     private readonly dataSource: DataSource,
     private readonly guardService: ConcurrentExecutionGuardService,
+    private readonly commitService: CommitService,
   ) {}
 
   private async getSpecAndVerify(specId: number, userId: number): Promise<Spec> {
@@ -131,5 +134,50 @@ export class TicketsService {
 
   async reject(ticketId: number, userId: number): Promise<Ticket> {
     return this.transitionStatus(ticketId, userId, 'Rejected');
+  }
+
+  async commit(ticketId: number, userId: number): Promise<{ sha: string }> {
+    const ticket = await this.getTicketAndVerify(ticketId, userId);
+
+    // Req 20.4: 409 for ticket not in Approved
+    if (ticket.status !== 'Approved') {
+      throw new ConflictException(
+        `Ticket must be in Approved status to commit. Current: ${ticket.status}`,
+      );
+    }
+
+    const result = await this.commitService.commit(ticket);
+
+    // Set status to Merged after successful commit (Req 20.4)
+    await this.ticketRepo.update(ticketId, { status: 'Merged' });
+
+    return result;
+  }
+
+  async askAgentFix(
+    ticketId: number,
+    userId: number,
+    dto: AskAgentFixDto,
+  ): Promise<{ execution_id: number }> {
+    const ticket = await this.getTicketAndVerify(ticketId, userId);
+
+    // Req 18.5: ticket must be in Rejected or Waiting Review
+    if (!['Rejected', 'Waiting Review'].includes(ticket.status)) {
+      throw new ConflictException(
+        `Ticket must be in Rejected or Waiting Review to ask agent fix. Current: ${ticket.status}`,
+      );
+    }
+
+    const projectId = ticket.spec.project_id;
+    const execution = await this.guardService.tryAcquire(
+      projectId,
+      ticketId,
+      ticket.agent_id,
+      dto.comments,
+    );
+
+    await this.ticketRepo.update(ticketId, { status: 'Running' });
+
+    return { execution_id: execution.id };
   }
 }

@@ -1,4 +1,4 @@
-import { execa, ExecaChildProcess } from 'execa';
+import { execa } from 'execa';
 import { ALLOWED_AGENT_COMMANDS, AGENT_TIMEOUT_MS, LOG_FLUSH_INTERVAL_MS } from '../config/paths.js';
 import { pushLogs } from './callback.js';
 import { Redis } from 'ioredis';
@@ -49,7 +49,7 @@ export async function spawnAgent(
     port: redis.options.port as number,
   });
 
-  let childProcess: ExecaChildProcess | undefined;
+  let childProcess: ReturnType<typeof execa> | undefined;
 
   await stopSubscriber.subscribe(`execution-stop:${executionId}`);
   stopSubscriber.on('message', (_channel: string, _message: string) => {

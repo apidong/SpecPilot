@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, QueryFailedError } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '../../database/entities/user.entity.js';
@@ -32,7 +32,17 @@ export class AuthService {
       email: dto.email,
       password_hash: passwordHash,
     });
-    const saved = await this.userRepo.save(user);
+
+    let saved: User;
+    try {
+      saved = await this.userRepo.save(user);
+    } catch (err) {
+      // ER_DUP_ENTRY = 1062 (MySQL) — race condition on unique email index
+      if (err instanceof QueryFailedError && (err as QueryFailedError & { errno?: number }).errno === 1062) {
+        throw new ConflictException('Email already registered');
+      }
+      throw err;
+    }
 
     const token = await this.signToken(saved);
     return {
@@ -64,12 +74,12 @@ export class AuthService {
   }
 
   async logout(jti: string, exp: number): Promise<void> {
-    // Add to denylist until token expiry
+    // Use per-JTI key so each token gets its own TTL
+    // (shared set + expireat would shrink TTL of other tokens)
     const now = Math.floor(Date.now() / 1000);
     const ttl = exp - now;
     if (ttl > 0) {
-      await this.redis.sadd('auth:denylist', jti);
-      await this.redis.expireat('auth:denylist', exp);
+      await this.redis.set(`auth:denylist:${jti}`, '1', 'EX', ttl);
     }
   }
 

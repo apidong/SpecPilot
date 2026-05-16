@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 
@@ -19,6 +20,7 @@ import { TicketsModule } from './modules/tickets/tickets.module.js';
 import { ExecutionsModule } from './modules/executions/executions.module.js';
 import { InternalModule } from './modules/internal/internal.module.js';
 import { WebsocketModule } from './modules/websocket/websocket.module.js';
+import { Phase2RejectModule } from './modules/phase2-reject/phase2-reject.module.js';
 
 @Module({
   imports: [
@@ -66,6 +68,16 @@ import { WebsocketModule } from './modules/websocket/websocket.module.js';
     }),
 
     RedisModule,
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: () => ({
+        throttlers: [
+          // Default: 5 failures per 60s window, block for 300s (5 min)
+          { name: 'login', ttl: 60_000, limit: 5 },
+        ],
+      }),
+    }),
     AuthModule,
     ProjectsModule,
     SpecsModule,
@@ -74,6 +86,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module.js';
     ExecutionsModule,
     InternalModule,
     WebsocketModule,
+    Phase2RejectModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

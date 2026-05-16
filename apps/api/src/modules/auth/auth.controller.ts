@@ -14,6 +14,7 @@ import { AuthService } from './auth.service.js';
 import { LoginDto, RegisterDto } from './dto/auth.dto.js';
 import { Public } from '../../common/decorators/public.decorator.js';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { LoginThrottleGuard } from './login-throttle.guard.js';
 import type { JwtPayload } from './jwt.strategy.js';
 import type { User } from '../../database/entities/user.entity.js';
 
@@ -36,6 +37,7 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(LoginThrottleGuard)
   @UsePipes(new ValidationPipe({ errorHttpStatusCode: 422 }))
   async login(@Body() dto: LoginDto) {
     return this.authService.login(dto);

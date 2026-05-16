@@ -5,10 +5,12 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { Execution } from './execution.entity.js';
 
 @Entity('file_changes')
+@Index(['execution_id', 'review_status'])
 export class FileChange {
   @PrimaryGeneratedColumn()
   id!: number;

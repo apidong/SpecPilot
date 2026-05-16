@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   ParseIntPipe,
+  ParseEnumPipe,
   HttpCode,
   HttpStatus,
   UsePipes,
@@ -24,6 +25,13 @@ import {
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { User } from '../../database/entities/user.entity.js';
 import type { ArtifactType } from '@specpilot/shared';
+
+// Runtime enum object for ParseEnumPipe (ArtifactType is a TS union, not an enum)
+const ArtifactTypeEnum = {
+  requirements: 'requirements',
+  design: 'design',
+  tasks: 'tasks',
+} as const;
 
 @ApiTags('Specs')
 @ApiBearerAuth()
@@ -105,7 +113,7 @@ export class SpecsController {
   @Get('specs/:specId/artifacts/:type/versions')
   async getVersions(
     @Param('specId', ParseIntPipe) specId: number,
-    @Param('type') type: ArtifactType,
+    @Param('type', new ParseEnumPipe(ArtifactTypeEnum)) type: ArtifactType,
     @CurrentUser() user: User,
   ) {
     await this.specsService.findOne(specId, user.id); // ownership check
@@ -115,7 +123,7 @@ export class SpecsController {
   @Get('specs/:specId/artifacts/:type/versions/:version')
   async getVersion(
     @Param('specId', ParseIntPipe) specId: number,
-    @Param('type') type: ArtifactType,
+    @Param('type', new ParseEnumPipe(ArtifactTypeEnum)) type: ArtifactType,
     @Param('version', ParseIntPipe) version: number,
     @CurrentUser() user: User,
   ) {
@@ -126,18 +134,18 @@ export class SpecsController {
   @Post('specs/:specId/artifacts/:type/versions/:version/restore')
   async restore(
     @Param('specId', ParseIntPipe) specId: number,
-    @Param('type') type: ArtifactType,
+    @Param('type', new ParseEnumPipe(ArtifactTypeEnum)) type: ArtifactType,
     @Param('version', ParseIntPipe) version: number,
     @CurrentUser() user: User,
   ) {
     const spec = await this.specsService.findOne(specId, user.id); // ownership check
-    return this.versioningService.restore(spec, type, version, user.id);
+    return this.versioningService.restore(spec as unknown as import('../../database/entities/spec.entity.js').Spec, type, version, user.id);
   }
 
   @Get('specs/:specId/artifacts/:type/versions/:versionA/diff/:versionB')
   async getDiff(
     @Param('specId', ParseIntPipe) specId: number,
-    @Param('type') type: ArtifactType,
+    @Param('type', new ParseEnumPipe(ArtifactTypeEnum)) type: ArtifactType,
     @Param('versionA', ParseIntPipe) versionA: number,
     @Param('versionB', ParseIntPipe) versionB: number,
     @CurrentUser() user: User,

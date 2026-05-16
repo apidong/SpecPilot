@@ -7,6 +7,7 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { Spec } from './spec.entity.js';
 import { Agent } from './agent.entity.js';
@@ -14,6 +15,7 @@ import { Execution } from './execution.entity.js';
 import type { TicketStatus } from '@specpilot/shared';
 
 @Entity('tickets')
+@Index(['spec_id', 'status'])
 export class Ticket {
   @PrimaryGeneratedColumn()
   id!: number;

@@ -18,10 +18,10 @@ export type {
   DiffResult,
   SpecStatus,
   AgentProvider,
-  ACTIVE_EXECUTION_STATUSES,
 } from './types/index.js';
 export {
   TICKET_TRANSITIONS,
   VALID_SPEC_STATUSES,
   VALID_AGENT_PROVIDERS,
+  ACTIVE_EXECUTION_STATUSES,
 } from './types/index.js';

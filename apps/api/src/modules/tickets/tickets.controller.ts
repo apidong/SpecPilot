@@ -8,10 +8,12 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { TicketsService } from './tickets.service.js';
-import { CreateTicketDto, UpdateTicketDto } from './dto/ticket.dto.js';
+import { CreateTicketDto, UpdateTicketDto, AskAgentFixDto } from './dto/ticket.dto.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { User } from '../../database/entities/user.entity.js';
 
@@ -66,5 +68,21 @@ export class TicketsController {
   @Post('tickets/:id/reject')
   reject(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: User) {
     return this.ticketsService.reject(id, user.id);
+  }
+
+  @Post('tickets/:id/commit')
+  commit(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: User) {
+    return this.ticketsService.commit(id, user.id);
+  }
+
+  @Post('tickets/:id/ask-agent-fix')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @UsePipes(new ValidationPipe({ errorHttpStatusCode: 400 }))
+  askAgentFix(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: User,
+    @Body() dto: AskAgentFixDto,
+  ) {
+    return this.ticketsService.askAgentFix(id, user.id, dto);
   }
 }

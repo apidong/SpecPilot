@@ -27,6 +27,7 @@ export class ConcurrentExecutionGuardService {
     projectId: number,
     ticketId: number,
     agentId?: number,
+    askAgentFixComments?: string[],
   ): Promise<Execution> {
     let savedExecution: Execution | null = null;
 
@@ -58,6 +59,9 @@ export class ConcurrentExecutionGuardService {
           project_id: projectId,
           agent_id: agentId,
           status: 'Queued',
+          ...(askAgentFixComments?.length
+            ? { ask_agent_fix_comments: JSON.stringify(askAgentFixComments) }
+            : {}),
         });
         const saved = await manager.save(execution);
 

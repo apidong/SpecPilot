@@ -32,8 +32,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<User & Pick<JwtPayload, 'jti' | 'exp'>> {
-    // Check denylist
-    const isDenied = await this.redis.sismember('auth:denylist', payload.jti);
+    // Check per-JTI denylist key
+    const isDenied = await this.redis.exists(`auth:denylist:${payload.jti}`);
     if (isDenied) {
       throw new UnauthorizedException('Token has been revoked');
     }

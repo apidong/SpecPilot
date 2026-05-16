@@ -9,7 +9,13 @@ export const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT
 export const INTERNAL_API_URL = process.env.INTERNAL_API_URL ?? 'http://localhost:3000';
 
 // Worker secret (for X-Worker-Secret header)
-export const WORKER_SECRET = process.env.WORKER_SECRET ?? '';
+// Must be set — an empty secret makes timingSafeEqual trivially bypassable
+const _workerSecret = process.env.WORKER_SECRET ?? '';
+if (!_workerSecret) {
+  console.error('FATAL: WORKER_SECRET environment variable must be set');
+  process.exit(1);
+}
+export const WORKER_SECRET: string = _workerSecret;
 
 // Redis connection
 export const REDIS_HOST = process.env.REDIS_HOST ?? 'localhost';

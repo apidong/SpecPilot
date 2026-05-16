@@ -73,7 +73,7 @@ export class SpecsService {
     });
   }
 
-  async findOne(specId: number, userId: number): Promise<Spec & { artifacts: Record<string, SpecArtifact | null> }> {
+  async findOne(specId: number, userId: number): Promise<Omit<Spec, 'artifacts'> & { artifacts: Record<ArtifactType, SpecArtifact | null> }> {
     const spec = await this.getSpecAndVerify(specId, userId);
 
     // Load active artifacts for all three types (Req 4.4)
@@ -84,7 +84,7 @@ export class SpecsService {
     ]);
 
     return {
-      ...spec,
+      ...(spec as Omit<Spec, 'artifacts'>),
       artifacts: {
         requirements: requirements ?? null,
         design: design ?? null,
