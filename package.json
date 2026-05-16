@@ -1,0 +1,40 @@
+{
+  "name": "specpilot",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:api": "pnpm --filter=@specpilot/api run dev",
+    "dev:worker": "pnpm --filter=@specpilot/worker run dev",
+    "dev:web": "pnpm --filter=@specpilot/web run dev",
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "migration:run": "pnpm --filter=@specpilot/api run migration:run",
+    "migration:revert": "pnpm --filter=@specpilot/api run migration:revert",
+    "migration:generate": "pnpm --filter=@specpilot/api run migration:generate"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "bcrypt",
+      "esbuild",
+      "msgpackr-extract",
+      "vue-demi"
+    ],
+    "approvedBuilds": [
+      "@nestjs/core",
+      "bcrypt",
+      "esbuild",
+      "msgpackr-extract",
+      "vue-demi"
+    ]
+  }
+}
