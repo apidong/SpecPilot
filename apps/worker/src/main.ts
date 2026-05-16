@@ -1,3 +1,5 @@
+// Load .env before any config modules run (paths.ts reads env vars at module level)
+import 'dotenv/config';
 import { createWorker } from './queue/consumer.js';
 
 const worker = createWorker();

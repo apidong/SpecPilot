@@ -12,6 +12,7 @@
   "dependencies": {
     "@specpilot/shared": "workspace:*",
     "bullmq": "^5.12.10",
+    "dotenv": "^17.4.2",
     "execa": "^9.3.0",
     "ioredis": "^5.4.1"
   },
